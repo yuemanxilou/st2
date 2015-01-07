@@ -77,7 +77,7 @@ class ParametersViewController(RestController):
                 GET /actions/views/parameters/1
         """
         action_db = LookupUtils._get_action_by_id(action_id)
-        LOG.info('Found action: %s, runner: %s', action_db, action_db.runner_type['name'])
+        LOG.debug('Found action: %s, runner: %s', action_db, action_db.runner_type['name'])
         runner_db = LookupUtils._get_runner_by_name(action_db.runner_type['name'])
 
         all_params = param_utils.get_params_view(
