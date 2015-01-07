@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import eventlet
 import os
 import sys
+import signal
 
+import eventlet
 from oslo.config import cfg
 from eventlet import wsgi
 
@@ -24,6 +25,7 @@ from st2common import log as logging
 from st2common.models.db import db_setup
 from st2common.models.db import db_teardown
 from st2common.constants.logging import DEFAULT_LOGGING_CONF_PATH
+from st2api.listener import get_listener_if_set
 from st2api import config
 from st2api import app
 
@@ -72,6 +74,16 @@ def _teardown():
 
 
 def main():
+    def sigint_handler(signum=None, frame=None):
+        listener = get_listener_if_set()
+
+        if listener:
+            listener.shutdown()
+
+        raise KeyboardInterrupt()
+
+    signal.signal(signal.SIGINT, sigint_handler)
+
     try:
         _setup()
         return _run_server()
