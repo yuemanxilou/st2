@@ -50,6 +50,10 @@ else
   exit 2
 fi
 
+if [[ `grep RedHat /etc/redhat-release` ]]; then
+        rpm -ivh http://epel.mirror.constant.com/7/x86_64/e/epel-release-7-5.noarch.rpm
+fi
+
 RELEASE=$(curl -sS -k -f "https://ops.stackstorm.net/releases/st2/${VER}/${TYPE}/current/VERSION.txt")
 EXIT_CODE=$?
 
