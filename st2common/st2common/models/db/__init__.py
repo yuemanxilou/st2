@@ -3,6 +3,7 @@ import importlib
 
 import six
 import mongoengine
+from pymongo import MongoClient
 
 from st2common.util import isotime
 from st2common.models.db import stormbase
@@ -10,6 +11,7 @@ from st2common import log as logging
 
 
 LOG = logging.getLogger(__name__)
+
 
 MODEL_MODULE_NAMES = [
     'st2common.models.db.auth',
@@ -36,14 +38,15 @@ def db_setup(db_name, db_host, db_port, username=None, password=None):
 
     # Create all the indexes upfront to prevent race-conditions caused by
     # lazy index creation
-    db_ensure_indexes()
+    db_ensure_indexes(db_name=db_name, db_host=db_host, db_port=db_port)
 
     return connection
 
 
-def db_ensure_indexes():
+def db_ensure_indexes(db_name, db_host, db_port):
     """
-    This function ensures that indexes for all the models have been created.
+    This function ensures that indexes for all the models have been created. In addition to that
+    it also removes index which exist in the database but not in the models from the database.
 
     Note #1: When calling this method database connection already needs to be
     established.
@@ -51,14 +54,58 @@ def db_ensure_indexes():
     Note #2: This method blocks until all the index have been created (indexes
     are created in real-time and not in background).
     """
+
+    client = MongoClient(host=db_host, port=db_port, tz_aware=True)
+    db = client[db_name]
+
     LOG.debug('Ensuring database indexes...')
 
     for module_name in MODEL_MODULE_NAMES:
         module = importlib.import_module(module_name)
         model_classes = getattr(module, 'MODELS', [])
+
         for cls in model_classes:
-            LOG.debug('Ensuring indexes for model "%s"...' % (cls.__name__))
+            model_name = cls.__name__
+
+            # Ensure all the indexes exist
+            LOG.debug('Ensuring indexes for model "%s"...' % (model_name))
             cls.ensure_indexes()
+
+            # Drop indexes which exist in the DB but not locally (old, leftover indexes)
+
+            collection_name = cls._meta['collection']
+            collection = db[collection_name]
+
+            current_cls_indexes = cls.list_indexes()
+            current_db_indexes = []
+
+            db_indexes = collection.index_information()
+            for index_key, index_specs in db_indexes.items():
+                index_key = copy.deepcopy(index_specs['key'])
+
+                # TODO: There is a bug where cardinality if float instead of int so we convert it
+                # to int here
+                index_keys = []
+                for item in index_key:
+                    item = list(item)
+                    item[1] = int(item[1])
+                    item = tuple(item)
+                    index_keys.append(item)
+                current_db_indexes.append(index_keys)
+
+            current_cls_indexes = [tuple(item) for item in current_cls_indexes]
+            current_db_indexes = [tuple(item) for item in current_db_indexes]
+            current_cls_indexes = set(tuple(current_cls_indexes))
+            current_db_indexes = set(tuple(current_db_indexes))
+
+            obsolete_db_indexes = current_db_indexes - current_cls_indexes
+            for obsolete_db_index in obsolete_db_indexes:
+                obsolete_db_index = list(obsolete_db_index)
+                LOG.debug('Deleting obsolete db index "%s" for model "%s"' % (obsolete_db_index,
+                                                                              model_name))
+                collection.drop_index(obsolete_db_index)
+
+    client.close()
 
 
 def db_teardown():
