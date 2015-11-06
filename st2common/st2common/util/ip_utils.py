@@ -16,6 +16,7 @@
 import re
 
 import ipaddr
+import socket
 from st2common.log import logging
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +24,8 @@ LOG = logging.getLogger(__name__)
 __all__ = [
     'is_ipv4',
     'is_ipv6',
-    'split_host_port'
+    'split_host_port',
+    'get_ip_by_hostname'
 ]
 
 BRACKET_PATTERN = "^\[.*\]"  # IPv6 bracket pattern to specify port
@@ -117,3 +119,11 @@ def split_host_port(host_str):
                 raise Exception('Invalid port %s specified.' % port)
 
     return (hostname, port)
+
+
+def get_ip_by_hostname(hostname):
+    try:
+        return socket.gethostbyname(hostname)
+    except:
+        LOG.exception('IP lookup for %s failed.', hostname)
+    return None

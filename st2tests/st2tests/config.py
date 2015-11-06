@@ -18,6 +18,7 @@ from oslo_config import cfg, types
 from st2common import log as logging
 import st2common.config as common_config
 from st2common.constants.sensors import DEFAULT_PARTITION_LOADER
+from st2common.util.ip_utils import get_ip_by_hostname
 from st2tests.fixturesloader import get_fixtures_base_path
 
 CONF = cfg.CONF
@@ -61,6 +62,18 @@ def _register_config_opts():
 
 def _override_db_opts():
     CONF.set_override(name='db_name', override='st2-test', group='database')
+    # Check if the environment is providing a useful value.
+    db_ip = get_ip_by_hostname('db')
+    if db_ip:
+        CONF.set_override(name='host', override=db_ip, group='database')
+
+
+def _override_messaging_opts():
+    # Check if the environment is providing a useful value.
+    mq_ip = get_ip_by_hostname('mq')
+    if mq_ip:
+        mq_url = 'amqp://guest:guest@%s:5672//' % mq_ip
+        CONF.set_override(name='url', override=mq_url, group='messaging')
 
 
 def _override_common_opts():
