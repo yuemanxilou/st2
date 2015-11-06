@@ -254,7 +254,7 @@ unit-tests: requirements .unit-tests
 	@echo "==================== tests ===================="
 	@echo
 	@echo "----- Dropping st2-test db -----"
-	@mongo st2-test --eval "db.dropDatabase();"
+	@mongo db/st2-test --eval "db.dropDatabase();"
 	@for component in $(COMPONENTS_TEST); do\
 		echo "==========================================================="; \
 		echo "Running tests in" $$component; \
@@ -364,7 +364,7 @@ debs:
 	@for component in $(COMPONENTS_TEST); do\
 		cp -f ./scripts/dist_utils.py $$component/dist_utils.py;\
 	done
-	
+
 	# Copy over CHANGELOG.RST, CONTRIBUTING.RST and LICENSE file to each component directory
 	#@for component in $(COMPONENTS_TEST); do\
 	#	test -s $$component/README.rst || cp -f README.rst $$component/; \
