@@ -45,6 +45,7 @@ def _setup_config_opts():
 
 def _override_config_opts():
     _override_db_opts()
+    _override_messaging_opts()
     _override_common_opts()
 
 
