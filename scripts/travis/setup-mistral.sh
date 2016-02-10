@@ -77,7 +77,7 @@ fi
 touch $config
 cat <<mistral_config >$config
 [database]
-connection=postgresql://mistral:StackStorm@127.0.0.1/mistral
+connection=postgresql://mistral:StackStorm@localhost/mistral
 max_pool_size=50
 
 [pecan]
