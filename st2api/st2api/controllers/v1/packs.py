@@ -73,6 +73,7 @@ class BasePacksController(ResourceController):
 
 class PacksController(BasePacksController):
     from st2api.controllers.v1.packviews import PackViewsController
+    from st2api.controllers.v1.packconfig import PackConfigController
 
     model = PackAPI
     access = Pack
@@ -87,6 +88,7 @@ class PacksController(BasePacksController):
 
     # Nested controllers
     views = PackViewsController()
+    config = PackConfigController()
 
     @request_user_has_permission(permission_type=PermissionType.PACK_LIST)
     @jsexpose()

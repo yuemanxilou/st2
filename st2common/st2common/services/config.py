@@ -28,6 +28,8 @@ from st2common.constants.datastore import DATASTORE_KEY_SEPARATOR
 __all__ = [
     'get_datastore_key_name',
 
+    'get_datastores_items_for_pack',
+
     'get_datastore_value_for_config_key',
     'set_datastore_value_for_config_key',
 
@@ -69,6 +71,24 @@ def get_datastore_value_for_config_key(pack_name, key_name):
     name = get_datastore_key_name(pack_name=pack_name, key_name=key_name)
     kvp_db = get_datastore_value(key_name=name)
     return kvp_db
+
+
+def get_datastores_items_for_pack(pack_name):
+    """
+    Retrieve all the config KeyValuePairDB items for a particular pack.
+
+    :rtype: ``list`` of :class:`KeyValuePairDB`
+    """
+
+    prefix_filter = []
+    prefix_filter.append(DATASTORE_CONFIG_KEY_PREFIX)
+    prefix_filter.append(pack_name)
+    prefix_filter = DATASTORE_KEY_SEPARATOR.join(prefix_filter)
+
+    filters = {}
+    filters['name__startswith'] = prefix_filter
+    kvp_dbs = KeyValuePair.get_all(**filters)
+    return kvp_dbs
 
 
 def get_datastore_value(key_name):
