@@ -16,6 +16,7 @@
 import mock
 from mock import call
 import requests
+import uuid
 
 from mistralclient.api.v2 import action_executions
 from oslo_config import cfg
@@ -29,10 +30,13 @@ from st2actions.handlers.mistral import STATUS_MAP as mistral_status_map
 from st2common.bootstrap import actionsregistrar
 from st2common.bootstrap import runnersregistrar
 from st2common.constants import action as action_constants
+from st2common.models.db.execution import ActionExecutionDB
 from st2common.models.db.liveaction import LiveActionDB
+from st2common.persistence.execution import ActionExecution
 from st2common.persistence.liveaction import LiveAction
 from st2common.runners import base as runners
 from st2common.services import action as action_service
+from st2common.services import trace as trace_service
 from st2common.transport.liveaction import LiveActionPublisher
 from st2common.transport.publishers import CUDPublisher
 from st2tests import DbTestCase
@@ -49,6 +53,14 @@ PACKS = [
 ]
 
 NON_EMPTY_RESULT = 'non-empty'
+
+MOCK_ACTION_EXEC_DB = ActionExecutionDB(
+    action={'ref': 'mock.workflow'},
+    runner={'ref': 'mock.runner'},
+    liveaction={'id': uuid.uuid4().hex},
+    status=action_constants.LIVEACTION_STATUS_RUNNING,
+    context={'mistral': {'auth_token': uuid.uuid4().hex}}
+)
 
 
 @mock.patch.object(
@@ -98,45 +110,87 @@ class MistralRunnerCallbackTest(DbTestCase):
                              sorted(action_constants.LIVEACTION_STATUSES))
 
     @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
+    @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(return_value=None))
     def test_callback_handler_with_result_as_text(self):
-        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345', {},
+        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345',
+                                        {'parent': {'execution_id': uuid.uuid4().hex}},
                                         action_constants.LIVEACTION_STATUS_SUCCEEDED,
                                         '<html></html>')
 
     @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
+    @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(return_value=None))
     def test_callback_handler_with_result_as_dict(self):
-        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345', {},
+        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345',
+                                        {'parent': {'execution_id': uuid.uuid4().hex}},
                                         action_constants.LIVEACTION_STATUS_SUCCEEDED, {'a': 1})
 
+    @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
     @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(return_value=None))
     def test_callback_handler_with_result_as_json_str(self):
-        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345', {},
+        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345',
+                                        {'parent': {'execution_id': uuid.uuid4().hex}},
                                         action_constants.LIVEACTION_STATUS_SUCCEEDED, '{"a": 1}')
-        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345', {},
+        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345',
+                                        {'parent': {'execution_id': uuid.uuid4().hex}},
                                         action_constants.LIVEACTION_STATUS_SUCCEEDED, "{'a': 1}")
 
+    @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
     @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(return_value=None))
     def test_callback_handler_with_result_as_list(self):
-        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345', {},
+        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345',
+                                        {'parent': {'execution_id': uuid.uuid4().hex}},
                                         action_constants.LIVEACTION_STATUS_SUCCEEDED,
                                         ["a", "b", "c"])
 
     @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
+    @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(return_value=None))
     def test_callback_handler_with_result_as_list_str(self):
-        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345', {},
+        MistralCallbackHandler.callback('http://127.0.0.1:8989/v2/action_executions/12345',
+                                        {'parent': {'execution_id': uuid.uuid4().hex}},
                                         action_constants.LIVEACTION_STATUS_SUCCEEDED,
                                         '["a", "b", "c"]')
 
+    @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
     @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(return_value=None))
@@ -144,7 +198,13 @@ class MistralRunnerCallbackTest(DbTestCase):
         local_runner_cls = self.get_runner_class('local_runner')
 
         liveaction = LiveActionDB(
-            action='core.local', parameters={'cmd': 'uname -a'},
+            action='core.local',
+            parameters={'cmd': 'uname -a'},
+            context={
+                'parent': {
+                    'execution_id': uuid.uuid4().hex
+                }
+            },
             callback={
                 'source': 'mistral',
                 'url': 'http://127.0.0.1:8989/v2/action_executions/12345'
@@ -161,6 +221,12 @@ class MistralRunnerCallbackTest(DbTestCase):
                 '12345', state=expected_mistral_status, output=NON_EMPTY_RESULT)
 
     @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
+    @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(return_value=None))
     def test_callback_incomplete_state(self):
@@ -169,7 +235,13 @@ class MistralRunnerCallbackTest(DbTestCase):
         local_runner_cls.run = mock.Mock(return_value=local_run_result)
 
         liveaction = LiveActionDB(
-            action='core.local', parameters={'cmd': 'uname -a'},
+            action='core.local',
+            parameters={'cmd': 'uname -a'},
+            context={
+                'parent': {
+                    'execution_id': uuid.uuid4().hex
+                }
+            },
             callback={
                 'source': 'mistral',
                 'url': 'http://127.0.0.1:8989/v2/action_executions/12345'
@@ -182,6 +254,12 @@ class MistralRunnerCallbackTest(DbTestCase):
         self.assertFalse(action_executions.ActionExecutionManager.update.called)
 
     @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
+    @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(side_effect=[
             requests.exceptions.ConnectionError(),
@@ -192,7 +270,13 @@ class MistralRunnerCallbackTest(DbTestCase):
         local_runner_cls.run = mock.Mock(return_value=local_run_result)
 
         liveaction = LiveActionDB(
-            action='core.local', parameters={'cmd': 'uname -a'},
+            action='core.local',
+            parameters={'cmd': 'uname -a'},
+            context={
+                'parent': {
+                    'execution_id': uuid.uuid4().hex
+                }
+            },
             callback={
                 'source': 'mistral',
                 'url': 'http://127.0.0.1:8989/v2/action_executions/12345'
@@ -207,6 +291,12 @@ class MistralRunnerCallbackTest(DbTestCase):
         action_executions.ActionExecutionManager.update.assert_has_calls(calls)
 
     @mock.patch.object(
+        trace_service, 'get_trace_db_by_live_action',
+        mock.MagicMock(return_value=(None, None)))
+    @mock.patch.object(
+        ActionExecution, 'get_by_id',
+        mock.MagicMock(return_value=MOCK_ACTION_EXEC_DB))
+    @mock.patch.object(
         action_executions.ActionExecutionManager, 'update',
         mock.MagicMock(side_effect=[
             requests.exceptions.ConnectionError(),
@@ -220,7 +310,13 @@ class MistralRunnerCallbackTest(DbTestCase):
         local_runner_cls.run = mock.Mock(return_value=local_run_result)
 
         liveaction = LiveActionDB(
-            action='core.local', parameters={'cmd': 'uname -a'},
+            action='core.local',
+            parameters={'cmd': 'uname -a'},
+            context={
+                'parent': {
+                    'execution_id': uuid.uuid4().hex
+                }
+            },
             callback={
                 'source': 'mistral',
                 'url': 'http://127.0.0.1:8989/v2/action_executions/12345'
@@ -229,6 +325,7 @@ class MistralRunnerCallbackTest(DbTestCase):
 
         liveaction, execution = action_service.request(liveaction)
         liveaction = LiveAction.get_by_id(str(liveaction.id))
+
         self.assertEqual(liveaction.status, action_constants.LIVEACTION_STATUS_SUCCEEDED)
 
         # This test initially setup mock for action_executions.ActionExecutionManager.update
